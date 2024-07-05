@@ -94,6 +94,44 @@ def tradeoff_opt_gaussian(alpha: float, privacy_profile) -> float:
     return 1 -_search_function(sol)
 
 
+def dg_delta_k(sigma2,eps,sens=1,iters=None, k=0):
+    assert sigma2>0
+    assert eps>=0
+    assert sens>0
+
+    #sigma2 = int(round(sigma2 >> (2*k))) # very approximative, because not necessarily in Z
+    sigma2 = int(round(sigma2 / 2**(2*k))) # very approximative, because not necessarily in Z
+    #sens = int(round(sens >> k))
+    sens = int(round(sens / 2**k))
+    #eps = int(round(eps >> k))
+    #eps = int(round(eps / 2**k))
+
+    lower_limit=int(math.floor(eps*sigma2/sens-sens/2))+1
+    upper_limit=int(math.floor(eps*sigma2/sens+sens/2))+1
+    #If X~discreteGaussian(sigma2), then
+    #delta = P[X >= lower_limit] - exp(eps) * P[X >= upper_limit]
+    #      = P[lower_limit <= X < upper_limit] - (exp(eps)-1) * P[X >= upper_limit]
+    
+    # Hack
+    import sys
+    sys.path.append("../discrete-gaussian-differential-privacy")
+    import discretegauss as dg
+    
+    norm_const = dg.normalizing_constant(sigma2) #normalizing constant of discrete gaussian
+    expepsm1 = math.expm1(eps)
+    #big question: how far to run the infinite series
+    #any finite truncation still provides a valid upper bound on delta
+    # so don't need to be too paranoid about this being large
+    if iters is None: #insert default value
+        iters = 1000 + dg.floorsqrt(200*sigma2)
+    sum_delta = 0
+    for x in range(lower_limit,upper_limit):
+        sum_delta = sum_delta + math.exp(-x*x/(2.0*sigma2)) /  norm_const
+    for x in range(upper_limit,upper_limit+iters):
+        sum_delta = sum_delta - expepsm1*math.exp(-x*x/(2.0*sigma2)) /  norm_const
+    return sum_delta
+
+
 # Laplace mechanism
 # -----------------
 def tradeoff_laplace(alpha, scale, sensitivity):
