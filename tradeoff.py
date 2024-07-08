@@ -17,6 +17,12 @@ def approx_tradeoff(alpha, epsilons, deltas):
     return max(betas)
 
 
+# From Sebastian Meiser, https://eprint.iacr.org/2018/277.pdf page 3
+# Conversion from pure-dp to approx-dp
+def pure_dp_privacy_profile(pure_epsilon, epsilon):
+    return math.exp(pure_epsilon) - math.exp(epsilon) if epsilon <= pure_epsilon else pure_epsilon
+
+
 class smdCurveWrapper:
     """
     Wrapper around opendp smdCurves to make them callable
@@ -41,7 +47,7 @@ class tradeoffCurve:
     def __init__(self, privacy_profile, deltas = None, epsilons = None):
         if deltas is None and epsilons is None:
             raise Exception("Provide either deltas or epsilons")
-        
+                
         self.deltas = deltas
         self.epsilons = epsilons
         self.privacy_profile = privacy_profile
@@ -77,7 +83,7 @@ def tradeoff_gaussian(alpha, mu):
 def get_tradeoff_gaussian(mu):
     return partial(tradeoff_gaussian, mu=mu)
 
-# Analytic version of delta(epsilon) curve for Gaussian Mechanism -> Tudor
+# Analytic version of delta(epsilon) curve for Gaussian Mechanism -> f-dp paper
 def get_gaussian_privacy_profile(sensitivity: float, sigma: float):
     def func(eps: float) -> float:
        return scipy.stats.norm.cdf(sensitivity/(2 * sigma) - eps * sigma / sensitivity) - np.exp(eps) * scipy.stats.norm.cdf(-sensitivity / (2 * sigma) - eps * sigma / sensitivity)
@@ -141,3 +147,11 @@ def tradeoff_laplace(alpha, scale, sensitivity):
 def get_tradeoff_laplace(scale, sensitivity):
     return partial(tradeoff_laplace, scale=scale, sensitivity=sensitivity)
 
+# From Privacy Amplification by Subsampling: Tight Analyses via
+# Couplings and Divergences, Borja Balle, 2018
+# Theorem 3
+def get_laplace_privacy_profile(sensitivity, scale):
+    def func(eps: float) -> float:
+        delta = 1 - math.exp((eps - sensitivity/scale)/2)
+        return delta
+    return func
