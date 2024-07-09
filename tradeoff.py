@@ -152,6 +152,6 @@ def get_tradeoff_laplace(scale, sensitivity):
 # Theorem 3
 def get_laplace_privacy_profile(sensitivity, scale):
     def func(eps: float) -> float:
-        delta = 1 - math.exp((eps - sensitivity/scale)/2)
+        delta = max(0, 1 - math.exp((eps - sensitivity/scale)/2))
         return delta
     return func
