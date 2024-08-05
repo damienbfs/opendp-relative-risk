@@ -18,10 +18,19 @@ def approx_tradeoff(alpha, epsilons, deltas):
 
 
 # From Sebastian Meiser, https://eprint.iacr.org/2018/277.pdf page 3
+# Wrong, need additional condition so that delta always <= 1.0
 # Conversion from pure-dp to approx-dp
 def pure_dp_privacy_profile(pure_epsilon, epsilon):
-    return math.exp(pure_epsilon) - math.exp(epsilon) if epsilon <= pure_epsilon else pure_epsilon
-
+    if epsilon > pure_epsilon:
+        return 0.0
+    elif epsilon < math.log(math.exp(pure_epsilon) - 1.0):
+        return 1.0
+    else:
+        return math.exp(pure_epsilon) - math.exp(epsilon)
+    
+def pure_dp_privacy_profile_eps(pure_epsilon, delta):
+    return max(math.log(math.exp(pure_epsilon) - delta), 0)
+    
 
 class smdCurveWrapper:
     """
